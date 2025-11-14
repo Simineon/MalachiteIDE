@@ -19,9 +19,11 @@ private slots:
     void openFile();
     void saveFile();
     void exitApp();
+    void executePy();
 
 private:
     CustomTextEdit *editor;
+    QString currentFilePath;
 };
 
-#endif // APP_H
+#endif 

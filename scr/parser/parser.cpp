@@ -1,10 +1,8 @@
 #include "parser.h"
 
 Parser::Parser(QTextDocument *parent) : QSyntaxHighlighter(parent) {
-    // Настройка правил подсветки
     HighlightingRule rule;
 
-    // Ключевые слова Python (синий)
     keywordFormat.setForeground(Qt::blue);
     keywordFormat.setFontWeight(QFont::Bold);
     QStringList keywordPatterns;

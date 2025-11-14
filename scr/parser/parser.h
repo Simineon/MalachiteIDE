@@ -23,7 +23,7 @@ private:
 
     QVector<HighlightingRule> highlightingRules;
 
-    // Форматы для разных типов текста
+    // Formats for different types of text
     QTextCharFormat keywordFormat;
     QTextCharFormat doubleStringFormat;
     QTextCharFormat singleStringFormat;

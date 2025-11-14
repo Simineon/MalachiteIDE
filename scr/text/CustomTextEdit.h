@@ -17,6 +17,18 @@ protected:
         } else if (event->key() == Qt::Key_ParenLeft) {
             autoParens();
             event->accept();
+        } else if (event->key() == Qt::Key_Apostrophe) {
+            autoSingleStrings();
+            event->accept();
+        } else if (event->key() == Qt::Key_QuoteDbl) {
+            autoDoubleStrings();
+            event->accept();
+        } else if (event->key() == Qt::Key_BraceLeft) {
+            autoBraces();
+            event->accept();
+        } else if (event->key() == Qt::Key_BracketLeft) {
+            autoSquareBrackets();
+            event->accept();
         } else {
             QTextEdit::keyPressEvent(event);
         }
@@ -32,10 +44,47 @@ private:
         setTextCursor(cursor);
     }
 
+    void autoDoubleStrings() {
+        QTextCursor cursor = textCursor();
+
+        cursor.insertText("\"\"");
+
+        cursor.movePosition(QTextCursor::Left);
+        setTextCursor(cursor);
+    }
+    
+    void autoSingleStrings() {
+        QTextCursor cursor = textCursor();
+
+        cursor.insertText("\'\'");
+
+        cursor.movePosition(QTextCursor::Left);
+        setTextCursor(cursor);
+    }
+
+    void autoBraces() {
+        QTextCursor cursor = textCursor();
+
+        cursor.insertText("{}");
+
+        cursor.movePosition(QTextCursor::Left);
+        setTextCursor(cursor);
+    }
+
+    void autoSquareBrackets() {
+        QTextCursor cursor = textCursor();
+
+        cursor.insertText("[]");
+
+        cursor.movePosition(QTextCursor::Left);
+        setTextCursor(cursor);
+    }
+
+    
+
     void handleBackspace() {
         QTextCursor cursor = textCursor();
         
-        // Если есть выделенный текст - стандартное удаление
         if (cursor.hasSelection()) {
             cursor.removeSelectedText();
             return;
@@ -43,26 +92,34 @@ private:
         
         int position = cursor.position();
         
-        // Проверяем, не пытаемся ли удалить открывающую скобку с парной закрывающей
         if (position > 0) {
             cursor.movePosition(QTextCursor::Left);
             cursor.movePosition(QTextCursor::Right, QTextCursor::KeepAnchor, 2);
             QString selectedText = cursor.selectedText();
             
-            // we deleting it "()"
             if (selectedText == "()") {
+                cursor.removeSelectedText();
+                return;
+            } else if (selectedText == "\"\"") {
+                cursor.removeSelectedText();
+                return;
+            } else if (selectedText == "\'\'") {
+                cursor.removeSelectedText();
+                return;
+            } else if (selectedText == "{}") {
+                cursor.removeSelectedText();
+                return;
+            } else if (selectedText == "[]") {
                 cursor.removeSelectedText();
                 return;
             }
         }
         
-        // Получаем текст текущей строки до курсора
         cursor = textCursor();
         cursor.movePosition(QTextCursor::StartOfLine);
         cursor.movePosition(QTextCursor::Right, QTextCursor::KeepAnchor, position - cursor.position());
         QString textBeforeCursor = cursor.selectedText();
         
-        // Считаем количество пробелов в конце (перед курсором)
         int spacesCount = 0;
         for (int i = textBeforeCursor.length() - 1; i >= 0; --i) {
             if (textBeforeCursor.at(i) == ' ') {
@@ -72,7 +129,6 @@ private:
             }
         }
         
-        // Если количество пробелов кратно 4 и есть хотя бы 4 пробела
         if (spacesCount >= 4 && spacesCount % 4 == 0) {
             cursor = textCursor();
             cursor.movePosition(QTextCursor::Left, QTextCursor::KeepAnchor, 4);
@@ -82,7 +138,6 @@ private:
             }
         }
         
-        // Стандартное удаление одного символа
         cursor = textCursor();
         cursor.deletePreviousChar();
     }
