@@ -2101,7 +2101,7 @@ CMakeFiles/Malachite.dir/main.cpp.o: /Users/semiontyulenev/Desktop/My\ Folder/C+
   /Library/Developer/CommandLineTools/usr/lib/clang/17/include/stddef.h \
   /Library/Developer/CommandLineTools/usr/lib/clang/17/include/stdint.h \
   Malachite_autogen/include/main.moc \
-  /Users/semiontyulenev/Desktop/My\ Folder/C++/Malachite/scr/text/CustomTextEdit.cpp \
+  /Users/semiontyulenev/Desktop/My\ Folder/C++/Malachite/scr/text/CustomTextEdit.h \
   /opt/homebrew/include/QtCore/QList \
   /opt/homebrew/include/QtCore/QObject \
   /opt/homebrew/include/QtCore/QRect \
@@ -2961,8 +2961,6 @@ CMakeFiles/Malachite.dir/main.cpp.o: /Users/semiontyulenev/Desktop/My\ Folder/C+
 /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/__type_traits/is_assignable.h:
 
 /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1/__type_traits/is_array.h:
-
-/Users/semiontyulenev/Desktop/My\ Folder/C++/Malachite/scr/text/CustomTextEdit.cpp:
 
 /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/xlocale/_stdlib.h:
 

@@ -748,7 +748,7 @@ Malachite_autogen/timestamp: /Library/Developer/CommandLineTools/SDKs/MacOSX15.5
   CMakeFiles/4.1.0/CMakeSystem.cmake \
   Malachite_autogen/moc_predefs.h \
   /Users/semiontyulenev/Desktop/My\ Folder/C++/Malachite/main.cpp \
-  /Users/semiontyulenev/Desktop/My\ Folder/C++/Malachite/scr/text/CustomTextEdit.cpp \
+  /Users/semiontyulenev/Desktop/My\ Folder/C++/Malachite/scr/text/CustomTextEdit.h \
   /opt/homebrew/Cellar/qt/6.9.1/lib/QtCore.framework/Versions/A/Headers/QList \
   /opt/homebrew/Cellar/qt/6.9.1/lib/QtCore.framework/Versions/A/Headers/QObject \
   /opt/homebrew/Cellar/qt/6.9.1/lib/QtCore.framework/Versions/A/Headers/QRect \
@@ -1432,6 +1432,8 @@ Malachite_autogen/timestamp: /Library/Developer/CommandLineTools/SDKs/MacOSX15.5
 /opt/homebrew/lib/cmake/Qt6DBusTools/Qt6DBusToolsTargets-release.cmake:
 
 /opt/homebrew/lib/cmake/Qt6DBusTools/Qt6DBusToolsConfigVersionImpl.cmake:
+
+/opt/homebrew/lib/cmake/Qt6DBusTools/Qt6DBusToolsConfigVersion.cmake:
 
 /opt/homebrew/lib/cmake/Qt6DBusTools/Qt6DBusToolsAdditionalTargetInfo.cmake:
 
@@ -3061,6 +3063,8 @@ CMakeFiles/4.1.0/CMakeSystem.cmake:
 
 /Library/Developer/CommandLineTools/SDKs/MacOSX15.5.sdk/usr/include/c++/v1/__debug_utils/randomize_range.h:
 
+/Users/semiontyulenev/Desktop/My\ Folder/C++/Malachite/scr/text/CustomTextEdit.h:
+
 /Library/Developer/CommandLineTools/SDKs/MacOSX15.5.sdk/usr/include/c++/v1/__algorithm/lexicographical_compare.h:
 
 /Library/Developer/CommandLineTools/SDKs/MacOSX15.5.sdk/usr/include/c++/v1/__algorithm/remove.h:
@@ -3756,10 +3760,6 @@ CMakeFiles/4.1.0/CMakeSystem.cmake:
 /opt/homebrew/lib/cmake/Qt6Core/Qt6CoreDependencies.cmake:
 
 /Library/Developer/CommandLineTools/SDKs/MacOSX15.5.sdk/usr/include/c++/v1/__algorithm/is_sorted.h:
-
-/opt/homebrew/lib/cmake/Qt6DBusTools/Qt6DBusToolsConfigVersion.cmake:
-
-/Users/semiontyulenev/Desktop/My\ Folder/C++/Malachite/scr/text/CustomTextEdit.cpp:
 
 /Library/Developer/CommandLineTools/SDKs/MacOSX15.5.sdk/usr/include/c++/v1/__memory/allocator.h:
 

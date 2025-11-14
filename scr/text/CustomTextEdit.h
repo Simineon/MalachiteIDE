@@ -49,7 +49,7 @@ private:
             cursor.movePosition(QTextCursor::Right, QTextCursor::KeepAnchor, 2);
             QString selectedText = cursor.selectedText();
             
-            // Если это "()" - удаляем обе скобки
+            // we deleting it "()"
             if (selectedText == "()") {
                 cursor.removeSelectedText();
                 return;

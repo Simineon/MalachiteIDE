@@ -125,7 +125,7 @@ public:
 
         // Настраиваем окно
         setWindowTitle("Malachite IDE");
-        setFixedSize(700, 500);
+        setFixedSize(1000, 600);
     }
 };
 
