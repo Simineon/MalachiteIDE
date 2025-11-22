@@ -59,12 +59,6 @@ Parser::Parser(QTextDocument *parent) : QSyntaxHighlighter(parent) {
     rule.pattern = QRegularExpression("\\b\\d+\\b");
     rule.format = numberFormat;
     highlightingRules.append(rule);
-
-    // Числа (красный)
-    parensFormat.setForeground(QColor(255, 255, 159));
-    rule.pattern = QRegularExpression("[\\(\\)]");
-    rule.format = parensFormat;
-    highlightingRules.append(rule);
 }
 
 void Parser::highlightBlock(const QString &text) {

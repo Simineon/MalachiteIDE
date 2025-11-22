@@ -30,7 +30,6 @@ private:
     QTextCharFormat singleStringFormat;
     QTextCharFormat commentFormat;
     QTextCharFormat numberFormat;
-    QTextCharFormat parensFormat;
 };
 
 #endif 

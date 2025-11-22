@@ -19,8 +19,8 @@ private slots:
     void openFile();
     void saveFile();
     void openFileFromExplorer(const QString &filePath);
-    void executePy();
     void exitApp();
+    void executePy();
 
 private:
     void refreshFileModel(QFileSystemModel *fileModel, QTreeView *fileTree);

@@ -28,14 +28,15 @@
 #include <QDir>
 #include <QFileInfo>
 #include "../parser/parser.h"
+#include "../app/execute/executer.h"
 
 App::App(QWidget *parent) : QWidget(parent) {
     QMenuBar *menuBar = new QMenuBar(this);
     
-    // Create splitter
+    // splitter
     QSplitter *splitter = new QSplitter(Qt::Horizontal, this);
     
-    // Создаем левую панель с проводником
+    // left panel - explorer
     QWidget *explorerPanel = new QWidget(this);
     explorerPanel->setStyleSheet("background-color: #262626; border: 1px solid #212121;");
     
@@ -46,7 +47,6 @@ App::App(QWidget *parent) : QWidget(parent) {
     explorerLabel->setAlignment(Qt::AlignCenter);
     leftLayout->addWidget(explorerLabel);
     
-    // Создаем проводник файлов
     QFileSystemModel *fileModel = new QFileSystemModel(this);
     fileModel->setRootPath(QDir::homePath());
     
@@ -57,11 +57,11 @@ App::App(QWidget *parent) : QWidget(parent) {
     fileTree->setIndentation(15);
     fileTree->setSortingEnabled(true);
     
-    // Настраиваем колонки - ОСТАВЛЯЕМ ТОЛЬКО НАЗВАНИЕ
+    // collumn settings
     fileTree->setHeaderHidden(false);
-    fileTree->setColumnHidden(1, true); // Скрываем колонку Размера
-    fileTree->setColumnHidden(2, true); // Скрываем колонку Типа
-    fileTree->setColumnHidden(3, true); // Скрываем колонку Дата изменения
+    fileTree->setColumnHidden(1, true); // Unshow Size column
+    fileTree->setColumnHidden(2, true); // Unshow Type column
+    fileTree->setColumnHidden(3, true); // Unshow Date Modified column
     
     // Стилизация проводника
     fileTree->setStyleSheet(
@@ -433,99 +433,7 @@ void App::saveFile() {
 void App::executePy() {
     saveFile();
     
-    if (currentFilePath.isEmpty()) {
-        QMessageBox::warning(this, "Error", "Please save the file first");
-        return;
-    }
-    
-    QWidget *runnerWindow = new QWidget();
-    runnerWindow->setWindowTitle("Runner - " + QFileInfo(currentFilePath).fileName());
-    runnerWindow->setMinimumSize(600, 500);
-    
-    QVBoxLayout *mainLayout = new QVBoxLayout(runnerWindow);
-    
-    QTextEdit *outputWidget = new QTextEdit();
-    outputWidget->setReadOnly(true);
-    mainLayout->addWidget(outputWidget);
-    
-    QWidget *inputWidget = new QWidget();
-    QHBoxLayout *inputLayout = new QHBoxLayout(inputWidget);
-    inputLayout->setContentsMargins(5, 5, 5, 5);
-    
-    QLabel *inputLabel = new QLabel("Input:");
-    QLineEdit *inputLineEdit = new QLineEdit();
-    QPushButton *sendButton = new QPushButton("Send");
-    
-    inputLayout->addWidget(inputLabel);
-    inputLayout->addWidget(inputLineEdit);
-    inputLayout->addWidget(sendButton);
-    
-    mainLayout->addWidget(inputWidget);
-    
-    inputWidget->setVisible(false);
-    
-    QProcess *process = new QProcess(runnerWindow);
-    
-    connect(process, &QProcess::readyReadStandardOutput, [process, outputWidget, inputWidget]() {
-        QString output = QString::fromLocal8Bit(process->readAllStandardOutput());
-        
-        if (output.contains(":") || output.toLower().contains("input") || output.trimmed().endsWith(":")) {
-            inputWidget->setVisible(true);
-        }
-        
-        outputWidget->append(output);
-    });
-    
-    connect(process, &QProcess::readyReadStandardError, [process, outputWidget]() {
-        QString error = QString::fromLocal8Bit(process->readAllStandardError());
-        outputWidget->append("<font color='red'>" + error + "</font>");
-    });
-    
-    connect(sendButton, &QPushButton::clicked, [process, inputLineEdit, outputWidget, inputWidget]() {
-        QString inputText = inputLineEdit->text() + "\n";
-        process->write(inputText.toLocal8Bit());
-        inputLineEdit->clear();
-        inputWidget->setVisible(false);
-    });
-    
-    connect(inputLineEdit, &QLineEdit::returnPressed, sendButton, &QPushButton::click);
-    
-    connect(process, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished),
-            [outputWidget, process, inputWidget, runnerWindow](int exitCode, QProcess::ExitStatus exitStatus) {
-                outputWidget->append("\n----------------------------------------");
-                outputWidget->append(QString("Process finished with exit code: %1").arg(exitCode));
-                inputWidget->setVisible(false);
-                process->deleteLater();
-            });
-    
-    runnerWindow->show();
-    outputWidget->append("File: " + currentFilePath);
-    outputWidget->append("----------------------------------------\n");
-    
-    process->setProcessChannelMode(QProcess::MergedChannels);
-    
-    QStringList pythonCommands = {"python", "python3", "py"};
-    bool processStarted = false;
-    
-    for (const QString &command : pythonCommands) {
-        process->start(command, QStringList() << "-i" << currentFilePath);
-        
-        if (process->waitForStarted(2000)) {
-            processStarted = true;
-            break;
-        }
-    }
-    
-    if (!processStarted) {
-        outputWidget->append("\n<font color='red'>ERROR: Could not start Python interpreter!</font>");
-        outputWidget->append("Please make sure Python is installed and available in your PATH.");
-        outputWidget->append("You can download Python from: https://www.python.org/downloads/");
-        
-        QMessageBox::critical(this, "Python Not Found", 
-            "Could not find Python interpreter on your system.\n\n"
-            "Please install Python and make sure it's available in your PATH environment variable.\n"
-            "Download from: https://www.python.org/downloads/");
-    }
+    Executer::executePy(currentFilePath, this);
 }
 
 void App::exitApp() {

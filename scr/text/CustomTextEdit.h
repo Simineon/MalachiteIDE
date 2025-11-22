@@ -8,6 +8,7 @@
 #include <QPainter>
 #include <QTextBlock>
 #include <QScrollBar>
+#include <QRegularExpression>
 
 class LineNumberArea;
 
@@ -35,10 +36,10 @@ private:
     void autoBraces();
     void autoSquareBrackets();
     void handleBackspace();
+    void handleEnter();
     
     LineNumberArea *lineNumberArea;
 
-    // Добавляем дружественный класс для доступа к protected методам
     friend class LineNumberArea;
 };
 
@@ -157,14 +158,52 @@ inline void CustomTextEdit::keyPressEvent(QKeyEvent *event) {
         autoSquareBrackets();
         event->accept();
     } else if (event->key() == Qt::Key_Return || event->key() == Qt::Key_Enter) {
-        // Обрабатываем Enter для немедленного обновления нумерации
-        QPlainTextEdit::keyPressEvent(event);
-        lineNumberArea->update();
+        handleEnter();
+        event->accept();
     } else {
         QPlainTextEdit::keyPressEvent(event);
     }
     
-    // Всегда обновляем область нумерации после любого нажатия клавиши
+    lineNumberArea->update();
+}
+
+inline void CustomTextEdit::handleEnter() {
+    QTextCursor cursor = textCursor();
+    
+    // Get the current block (line)
+    QTextBlock currentBlock = cursor.block();
+    QString currentLineText = currentBlock.text();
+    
+    // Find indentation of the current line (number of leading spaces)
+    int indentCount = 0;
+    while (indentCount < currentLineText.length() && currentLineText.at(indentCount) == ' ') {
+        indentCount++;
+    }
+    
+    // Check if current line contains class or def
+    bool shouldAddExtraIndent = false;
+    QString trimmedLine = currentLineText.trimmed();
+    if (trimmedLine.startsWith("class ") || trimmedLine.startsWith("def ")) {
+        shouldAddExtraIndent = true;
+    }
+    
+    // Insert a new line using the base handler
+    QPlainTextEdit::keyPressEvent(new QKeyEvent(QEvent::KeyPress, Qt::Key_Return, Qt::NoModifier));
+    
+    // Calculate new indentation
+    int newIndentCount = indentCount;
+    if (shouldAddExtraIndent) {
+        newIndentCount += 4; // Add extra 4 spaces for class/def blocks
+    }
+    
+    // If we have indentation, add it to the new line
+    if (newIndentCount > 0) {
+        // Create a string with the required number of spaces
+        QString indent(newIndentCount, ' ');
+        cursor = textCursor();
+        cursor.insertText(indent);
+    }
+    
     lineNumberArea->update();
 }
 
