@@ -184,7 +184,6 @@ inline void CustomTextEdit::handleBackspace() {
         }
     }
     
-    // Проверяем отступы (4 пробела)
     cursor = textCursor();
     cursor.movePosition(QTextCursor::StartOfLine);
     cursor.movePosition(QTextCursor::Right, QTextCursor::KeepAnchor, position - cursor.position());
@@ -208,7 +207,6 @@ inline void CustomTextEdit::handleBackspace() {
         }
     }
     
-    // Обычное удаление
     cursor = textCursor();
     cursor.deletePreviousChar();
 }
