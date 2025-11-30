@@ -309,7 +309,7 @@ inline QString CustomTextEdit::textUnderCursor() const {
 }
 
 inline void CustomTextEdit::keyPressEvent(QKeyEvent *event) {
-    // Handle completer
+    // Handle completer popup first
     if (c && c->popup() && c->popup()->isVisible()) {
         switch (event->key()) {
             case Qt::Key_Enter:
@@ -326,7 +326,21 @@ inline void CustomTextEdit::keyPressEvent(QKeyEvent *event) {
     
     bool isShortcut = ((event->modifiers() & Qt::ControlModifier) && event->key() == Qt::Key_Space);
     
-    // Special keys
+    // Handle special keys for auto-completion
+    if (event->key() == Qt::Key_QuoteDbl && event->modifiers() == Qt::NoModifier) {
+        autoDoubleStrings();
+        event->accept();
+        return;
+    }
+    else if (event->key() == Qt::Key_Apostrophe && event->modifiers() == Qt::NoModifier) {
+        autoSingleStrings();
+        event->accept();
+        return;
+    }
+    
+    // Handle other special keys
+    bool keyHandled = false;
+    
     switch (event->key()) {
         case Qt::Key_Tab:
             if (c && c->popup() && c->popup()->isVisible()) {
@@ -335,45 +349,36 @@ inline void CustomTextEdit::keyPressEvent(QKeyEvent *event) {
                 return;
             }
             insertPlainText("    ");
-            event->accept();
-            return;
+            keyHandled = true;
+            break;
         case Qt::Key_Backspace:
             handleBackspace();
-            event->accept();
-            return;
+            keyHandled = true;
+            break;
         case Qt::Key_ParenLeft:
             autoParens();
-            event->accept();
-            return;
-        case Qt::Key_Apostrophe:
-            if (event->modifiers() == Qt::NoModifier) {
-                autoSingleStrings();
-                event->accept();
-                return;
-            }
-            break;
-        case Qt::Key_QuoteDbl:
-            if (event->modifiers() == Qt::NoModifier) {
-                autoDoubleStrings();
-                event->accept();
-                return;
-            }
+            keyHandled = true;
             break;
         case Qt::Key_BraceLeft:
             autoBraces();
-            event->accept();
-            return;
+            keyHandled = true;
+            break;
         case Qt::Key_BracketLeft:
             autoSquareBrackets();
-            event->accept();
-            return;
+            keyHandled = true;
+            break;
         case Qt::Key_Return:
         case Qt::Key_Enter:
             handleEnter();
-            event->accept();
-            return;
+            keyHandled = true;
+            break;
         default:
             break;
+    }
+    
+    if (keyHandled) {
+        event->accept();
+        return;
     }
     
     // Process the key normally first
@@ -424,40 +429,6 @@ inline void CustomTextEdit::keyPressEvent(QKeyEvent *event) {
     }
 }
 
-inline void CustomTextEdit::handleEnter() {
-    QTextCursor cursor = textCursor();
-    
-    // Getting current block (line)
-    QTextBlock currentBlock = cursor.block();
-    QString currentLineText = currentBlock.text();
-    
-    int indentCount = 0;
-    while (indentCount < currentLineText.length() && currentLineText.at(indentCount) == ' ') {
-        indentCount++;
-    }
-    
-    // Check on def or class
-    bool shouldAddExtraIndent = false;
-    QString trimmedLine = currentLineText.trimmed();
-    if (trimmedLine.startsWith("class ") || trimmedLine.startsWith("def ")) {
-        shouldAddExtraIndent = true;
-    }
-    
-    // Insert new line
-    QPlainTextEdit::keyPressEvent(new QKeyEvent(QEvent::KeyPress, Qt::Key_Return, Qt::NoModifier));
-    
-    int newIndentCount = indentCount;
-    if (shouldAddExtraIndent) {
-        newIndentCount += 4;
-    }
-    
-    if (newIndentCount > 0) {
-        cursor = textCursor();
-        QString indent(newIndentCount, ' ');
-        cursor.insertText(indent);
-    }
-}
-
 inline void CustomTextEdit::autoParens() {
     QTextCursor cursor = textCursor();
     cursor.insertText("()");
@@ -467,16 +438,40 @@ inline void CustomTextEdit::autoParens() {
 
 inline void CustomTextEdit::autoDoubleStrings() {
     QTextCursor cursor = textCursor();
-    cursor.insertText("\"\"");
-    cursor.movePosition(QTextCursor::Left);
-    setTextCursor(cursor);
+    
+    // Проверяем, есть ли выделенный текст
+    if (cursor.hasSelection()) {
+        QString selectedText = cursor.selectedText();
+        cursor.insertText("\"" + selectedText + "\"");
+        
+        // Устанавливаем курсор после закрывающей кавычки
+        cursor.movePosition(QTextCursor::Left);
+        setTextCursor(cursor);
+    } else {
+        // Если нет выделения, вставляем пару кавычек и ставим курсор между ними
+        cursor.insertText("\"\"");
+        cursor.movePosition(QTextCursor::Left);
+        setTextCursor(cursor);
+    }
 }
 
 inline void CustomTextEdit::autoSingleStrings() {
     QTextCursor cursor = textCursor();
-    cursor.insertText("''");
-    cursor.movePosition(QTextCursor::Left);
-    setTextCursor(cursor);
+    
+    // Проверяем, есть ли выделенный текст
+    if (cursor.hasSelection()) {
+        QString selectedText = cursor.selectedText();
+        cursor.insertText("'" + selectedText + "'");
+        
+        // Устанавливаем курсор после закрывающей кавычки
+        cursor.movePosition(QTextCursor::Left);
+        setTextCursor(cursor);
+    } else {
+        // Если нет выделения, вставляем пару кавычек и ставим курсор между ними
+        cursor.insertText("''");
+        cursor.movePosition(QTextCursor::Left);
+        setTextCursor(cursor);
+    }
 }
 
 inline void CustomTextEdit::autoBraces() {
@@ -541,6 +536,40 @@ inline void CustomTextEdit::handleBackspace() {
     
     cursor = textCursor();
     cursor.deletePreviousChar();
+}
+
+inline void CustomTextEdit::handleEnter() {
+    QTextCursor cursor = textCursor();
+    
+    // Getting current block (line)
+    QTextBlock currentBlock = cursor.block();
+    QString currentLineText = currentBlock.text();
+    
+    int indentCount = 0;
+    while (indentCount < currentLineText.length() && currentLineText.at(indentCount) == ' ') {
+        indentCount++;
+    }
+    
+    // Check on def or class
+    bool shouldAddExtraIndent = false;
+    QString trimmedLine = currentLineText.trimmed();
+    if (trimmedLine.startsWith("class ") || trimmedLine.startsWith("def ")) {
+        shouldAddExtraIndent = true;
+    }
+    
+    // Insert new line
+    QPlainTextEdit::keyPressEvent(new QKeyEvent(QEvent::KeyPress, Qt::Key_Return, Qt::NoModifier));
+    
+    int newIndentCount = indentCount;
+    if (shouldAddExtraIndent) {
+        newIndentCount += 4;
+    }
+    
+    if (newIndentCount > 0) {
+        cursor = textCursor();
+        QString indent(newIndentCount, ' ');
+        cursor.insertText(indent);
+    }
 }
 
 inline void CustomTextEdit::createTips() {

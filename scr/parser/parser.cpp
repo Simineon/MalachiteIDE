@@ -9,7 +9,6 @@ Parser::Parser(QTextDocument *parent) : QSyntaxHighlighter(parent) {
     QStringList keywordBuiltIn;
     
     keywordPatterns 
-        // Основные ключевые слова
         << "\\bFalse\\b" << "\\bNone\\b" << "\\bTrue\\b" 
         << "\\band\\b" << "\\bas\\b" << "\\bassert\\b" << "\\basync\\b" 
         << "\\bawait\\b" << "\\bbreak\\b" << "\\bclass\\b" << "\\bcontinue\\b" 
@@ -24,7 +23,6 @@ Parser::Parser(QTextDocument *parent) : QSyntaxHighlighter(parent) {
         << "\\bself\\b" << "\\bcls\\b";
 
     keywordBuiltIn 
-        // Основные встроенные функции
         << "\\babs\\b" << "\\ball\\b" << "\\bany\\b" << "\\bascii\\b" 
         << "\\bbin\\b" << "\\bbool\\b" << "\\bbreakpoint\\b" << "\\bbytearray\\b" 
         << "\\bbytes\\b" << "\\bcallable\\b" << "\\bchr\\b" << "\\bclassmethod\\b" 
@@ -82,7 +80,7 @@ Parser::Parser(QTextDocument *parent) : QSyntaxHighlighter(parent) {
         highlightingRules.append(rule);
     }
 
-    // Строки (оранжевый) ""
+    // Строки (зеленый) ""
     doubleStringFormat.setForeground(QColor(0, 158, 0));
     rule.pattern = QRegularExpression("\".*?\"");
     rule.format = doubleStringFormat;
@@ -132,7 +130,7 @@ Parser::Parser(QTextDocument *parent) : QSyntaxHighlighter(parent) {
     highlightingRules.append(rule);
 
     // Декораторы (синий)
-    decoratorFormat.setForeground(QColor(0, 100, 200));  // Теперь объявлено
+    decoratorFormat.setForeground(QColor(0, 100, 200));  
     decoratorFormat.setFontWeight(QFont::Bold);
     rule.pattern = QRegularExpression("@\\w+");
     rule.format = decoratorFormat;

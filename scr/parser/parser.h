@@ -25,10 +25,10 @@ private:
     QTextCharFormat keywordFormat;
     QTextCharFormat doubleStringFormat;
     QTextCharFormat singleStringFormat;
-    QTextCharFormat multiLineStringFormat;  // Добавлено
+    QTextCharFormat multiLineStringFormat;
     QTextCharFormat commentFormat;
     QTextCharFormat numberFormat;
-    QTextCharFormat decoratorFormat;        // Добавлено
+    QTextCharFormat decoratorFormat;
 
     void highlightMultiLine(const QString &text, const QString &delimiter, const QTextCharFormat &format);
 };
