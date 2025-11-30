@@ -10,6 +10,26 @@
 #include <QStringList>
 #include <QScrollBar>
 #include <QAbstractItemView>
+#include <QPaintEvent>
+#include <QTextEdit>
+#include <QTextDocument>
+#include <QPainter>
+
+// Forward declaration
+class CustomTextEdit;
+
+class LineNumberArea : public QWidget {
+public:
+    LineNumberArea(CustomTextEdit *editor);
+    
+    QSize sizeHint() const override;
+
+protected:
+    void paintEvent(QPaintEvent *event) override;
+
+private:
+    CustomTextEdit *textEdit;
+};
 
 class CustomTextEdit : public QPlainTextEdit {
     Q_OBJECT
@@ -21,6 +41,28 @@ public:
     void setCompleter(QCompleter *completer);
     QCompleter *completer() const { return c; }
     
+    // Methods for line numbering
+    int lineNumberAreaWidth();
+    void lineNumberAreaPaintEvent(QPaintEvent *event);
+    void updateLineNumberAreaWidth(int newBlockCount);
+    void updateLineNumberArea(const QRect &rect, int dy);
+    void resizeEvent(QResizeEvent *event) override;
+    
+    // Style methods for line numbers
+    void setLineNumberAreaBackground(const QColor &color);
+    void setLineNumberColor(const QColor &color);
+    void setCurrentLineHighlight(const QColor &color);
+    void setLineNumberFont(const QFont &font);
+    void setLineNumberAlignment(Qt::Alignment alignment);
+    void setLineNumberMargin(int margin);
+    
+    QColor lineNumberAreaBackground() const { return lineNumberBgColor; }
+    QColor lineNumberColor() const { return lineNumberTextColor; }
+    QColor currentLineHighlight() const { return currentLineColor; }
+    QFont lineNumberFont() const { return lineNumberAreaFont; }
+    Qt::Alignment lineNumberAlignment() const { return lineNumberAlign; }
+    int lineNumberMargin() const { return lineNumberMarginPx; }
+
 protected:
     void keyPressEvent(QKeyEvent *event) override;
     void focusInEvent(QFocusEvent *event) override;
@@ -41,7 +83,26 @@ private:
     
 private:
     QCompleter *c = nullptr;
+    LineNumberArea *lineNumberArea;
+    
+    // Style properties for line numbers
+    QColor lineNumberBgColor = QColor(240, 240, 240);
+    QColor lineNumberTextColor = Qt::black;
+    QColor currentLineColor = QColor(200, 200, 255);
+    QFont lineNumberAreaFont;
+    Qt::Alignment lineNumberAlign = Qt::AlignRight;
+    int lineNumberMarginPx = 5;
 };
+
+inline LineNumberArea::LineNumberArea(CustomTextEdit *editor) : QWidget(editor), textEdit(editor) {}
+
+inline QSize LineNumberArea::sizeHint() const {
+    return QSize(textEdit->lineNumberAreaWidth(), 0);
+}
+
+inline void LineNumberArea::paintEvent(QPaintEvent *event) {
+    textEdit->lineNumberAreaPaintEvent(event);
+}
 
 inline CustomTextEdit::CustomTextEdit(QWidget *parent) : 
     QPlainTextEdit(parent)
@@ -51,20 +112,158 @@ inline CustomTextEdit::CustomTextEdit(QWidget *parent) :
     font.setStyleHint(QFont::TypeWriter);
     setFont(font);
     
+    // Set line number font (can be different from main font)
+    lineNumberAreaFont = font;
+    lineNumberAreaFont.setPointSize(font.pointSize() - 1); // Slightly smaller
+    
     // Optimization
     setCenterOnScroll(false);
     setLineWrapMode(QPlainTextEdit::NoWrap);
     
     // Create completer
     createTips();
+    
+    lineNumberArea = new LineNumberArea(this);
+    
+    connect(this, &QPlainTextEdit::blockCountChanged, this, &CustomTextEdit::updateLineNumberAreaWidth);
+    connect(this, &QPlainTextEdit::updateRequest, this, &CustomTextEdit::updateLineNumberArea);
+    connect(this, &QPlainTextEdit::cursorPositionChanged, this, [this]() {
+        viewport()->update();
+    });
+    
+    updateLineNumberAreaWidth(0);
 }
 
 inline CustomTextEdit::~CustomTextEdit() {
     if (c) {
         delete c;
     }
+    if (lineNumberArea) {
+        delete lineNumberArea;
+    }
 }
 
+// Style methods implementation
+inline void CustomTextEdit::setLineNumberAreaBackground(const QColor &color) {
+    lineNumberBgColor = color;
+    if (lineNumberArea) {
+        lineNumberArea->update();
+    }
+}
+
+inline void CustomTextEdit::setLineNumberColor(const QColor &color) {
+    lineNumberTextColor = color;
+    if (lineNumberArea) {
+        lineNumberArea->update();
+    }
+}
+
+inline void CustomTextEdit::setCurrentLineHighlight(const QColor &color) {
+    currentLineColor = color;
+    if (lineNumberArea) {
+        lineNumberArea->update();
+    }
+}
+
+inline void CustomTextEdit::setLineNumberFont(const QFont &font) {
+    lineNumberAreaFont = font;
+    if (lineNumberArea) {
+        lineNumberArea->update();
+        updateLineNumberAreaWidth(0);
+    }
+}
+
+inline void CustomTextEdit::setLineNumberAlignment(Qt::Alignment alignment) {
+    lineNumberAlign = alignment;
+    if (lineNumberArea) {
+        lineNumberArea->update();
+    }
+}
+
+inline void CustomTextEdit::setLineNumberMargin(int margin) {
+    lineNumberMarginPx = margin;
+    if (lineNumberArea) {
+        lineNumberArea->update();
+    }
+}
+
+inline int CustomTextEdit::lineNumberAreaWidth() {
+    int digits = 1;
+    int max = qMax(1, blockCount());
+    while (max >= 10) {
+        max /= 10;
+        ++digits;
+    }
+    
+    QFontMetrics fm(lineNumberAreaFont);
+    int space = lineNumberMarginPx * 2 + fm.horizontalAdvance(QLatin1Char('9')) * digits;
+    return space;
+}
+
+inline void CustomTextEdit::lineNumberAreaPaintEvent(QPaintEvent *event) {
+    QPainter painter(lineNumberArea);
+    
+    // Fill background
+    painter.fillRect(event->rect(), lineNumberBgColor);
+    
+    // Set font for line numbers
+    painter.setFont(lineNumberAreaFont);
+    QFontMetrics fm(lineNumberAreaFont);
+    int lineHeight = fm.height();
+    
+    QTextBlock block = firstVisibleBlock();
+    int blockNumber = block.blockNumber();
+    int top = qRound(blockBoundingGeometry(block).translated(contentOffset()).top());
+    int bottom = top + qRound(blockBoundingRect(block).height());
+    
+    while (block.isValid() && top <= event->rect().bottom()) {
+        if (block.isVisible() && bottom >= event->rect().top()) {
+            QString number = QString::number(blockNumber + 1);
+            
+            // Highlight current line
+            QTextCursor cursor = textCursor();
+            if (cursor.blockNumber() == blockNumber) {
+                painter.fillRect(0, top, lineNumberArea->width(), lineHeight, currentLineColor);
+            }
+            
+            // Draw line number
+            painter.setPen(lineNumberTextColor);
+            QRect numberRect(0, top, lineNumberArea->width() - lineNumberMarginPx, lineHeight);
+            painter.drawText(numberRect, lineNumberAlign | Qt::AlignVCenter, number);
+        }
+        
+        block = block.next();
+        top = bottom;
+        bottom = top + qRound(blockBoundingRect(block).height());
+        ++blockNumber;
+    }
+}
+
+inline void CustomTextEdit::updateLineNumberAreaWidth(int newBlockCount) {
+    Q_UNUSED(newBlockCount)
+    setViewportMargins(lineNumberAreaWidth(), 0, 0, 0);
+}
+
+inline void CustomTextEdit::updateLineNumberArea(const QRect &rect, int dy) {
+    if (dy) {
+        lineNumberArea->scroll(0, dy);
+    } else {
+        lineNumberArea->update(0, rect.y(), lineNumberArea->width(), rect.height());
+    }
+    
+    if (rect.contains(viewport()->rect())) {
+        updateLineNumberAreaWidth(0);
+    }
+}
+
+inline void CustomTextEdit::resizeEvent(QResizeEvent *event) {
+    QPlainTextEdit::resizeEvent(event);
+    
+    QRect cr = contentsRect();
+    lineNumberArea->setGeometry(QRect(cr.left(), cr.top(), lineNumberAreaWidth(), cr.height()));
+}
+
+// Остальные методы остаются без изменений...
 inline void CustomTextEdit::setCompleter(QCompleter *completer) {
     if (c) {
         disconnect(c, nullptr, this, nullptr);
@@ -197,7 +396,7 @@ inline void CustomTextEdit::keyPressEvent(QKeyEvent *event) {
     
     // Don't show completer in these cases
     if (!isShortcut && (hasModifier || event->text().isEmpty() || 
-                       completionPrefix.length() < 1 ||  // Изменено с 2 на 1
+                       completionPrefix.length() < 1 ||  
                        eow.contains(event->text().right(1)))) {
         if (c->popup()) {
             c->popup()->hide();
@@ -214,7 +413,7 @@ inline void CustomTextEdit::keyPressEvent(QKeyEvent *event) {
     }
     
     // Only show popup if there are completions and we have enough characters
-    if (completionPrefix.length() >= 1 && c->completionCount() > 0) {  // Изменено с 2 на 1
+    if (completionPrefix.length() >= 1 && c->completionCount() > 0) { 
         QRect cr = cursorRect();
         cr.setWidth(c->popup()->sizeHintForColumn(0) 
                     + c->popup()->verticalScrollBar()->sizeHint().width());

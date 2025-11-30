@@ -51,6 +51,10 @@ App::App(QWidget *parent) : QWidget(parent)
     // Создаем начальную вкладку с примером кода
     tabWidget->newTab();
     CustomTextEdit *firstEditor = tabWidget->getCurrentEditor();
+    firstEditor->setLineNumberAreaBackground(QColor(50, 50, 50));
+    firstEditor->setLineNumberColor(QColor(200, 200, 200));
+    firstEditor->setCurrentLineHighlight(QColor(80, 80, 120));
+    firstEditor->setLineNumberFont(QFont("Arial", 10));  
     if (firstEditor) {
         firstEditor->setPlainText(
             "def func():\n"
