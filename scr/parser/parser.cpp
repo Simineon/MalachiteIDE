@@ -7,7 +7,7 @@ Parser::Parser(QTextDocument *parent) : QSyntaxHighlighter(parent) {
     keywordFormat.setFontWeight(QFont::Bold);
     QStringList keywordPatterns;
     QStringList keywordBuiltIn;
-    keywordPatterns << "\\bdef\\b" << "\\bclass\\b" << "\\bpass\\b"
+    keywordPatterns << "\\bdef\\b" << "\\bclass\\b" << "\\bpass\\b" << "\\bbreak\\b"
                     << "\\breturn\\b" << "\\bFalse\\b" << "\\bTrue\\b" << "\\bNone\\b"
                     << "\\band\\b" << "\\bor\\b" << "\\bnot\\b" << "\\bas\\b"
                     << "\\bawait\\b" << "\\byield\\b" << "\\bcontinue\\b" << "\\bin\\b"

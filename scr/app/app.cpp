@@ -60,7 +60,7 @@ App::App(QWidget *parent) : QWidget(parent)
             "func()\n"
         );
         
-        // highlighting для первой вкладки
+        // highlighting 
         new Parser(firstEditor->document());
     }
 
@@ -71,22 +71,20 @@ App::App(QWidget *parent) : QWidget(parent)
 }
 
 void App::setupUI() {
-    // Создаем главный layout
     QVBoxLayout *layout = new QVBoxLayout(this);
     layout->setContentsMargins(0, 0, 0, 0);
     layout->setSpacing(0);
     
-    // Создаем menuBar как дочерний виджет
     menuBar = new QMenuBar(this);
     
-    // Создаем splitter
+    // splitter
     splitter = new QSplitter(Qt::Horizontal, this);
     
-    // Создаем Tab widget
+    // Tab widget
     tabWidget = new Tab(this);
     splitter->addWidget(tabWidget);
     
-    // Добавляем в layout
+    // Add in layout
     layout->addWidget(menuBar);
     layout->addWidget(splitter, 1);
 }
@@ -141,10 +139,10 @@ void App::setupMenuBar() {
     connect(exitRunAction, &QAction::triggered, this, &App::exitApp);
     connect(runCurrentFile, &QAction::triggered, this, &App::executePy);
     
-    // Connect для обновления заголовка окна при смене вкладки
+    // Connect 
     connect(tabWidget, &Tab::currentChanged, this, &App::updateWindowTitle);
     
-    // Connect для действий View Menu
+    // Connect
     connect(toggleSplitViewAction, &QAction::triggered, this, &App::toggleSplitView);
     connect(editorOnlyViewAction, &QAction::triggered, this, &App::showEditorOnly);
     connect(panelOnlyViewAction, &QAction::triggered, this, &App::showPanelOnly);
@@ -154,7 +152,6 @@ void App::setupFileExplorer() {
     // left panel - explorer
     explorerPanel = new QWidget(this);
     
-    // Улучшенные стили для Linux
     QString panelStyle = 
         "QWidget {"
         "    background-color: #2d2d30;"
@@ -197,7 +194,7 @@ void App::setupFileExplorer() {
     explorerLabel->setAlignment(Qt::AlignCenter);
     leftLayout->addWidget(explorerLabel);
     
-    // Toolbar для файловых операций
+    // Toolbar
     QWidget *toolbar = new QWidget(this);
     toolbar->setStyleSheet("background-color: #333337; padding: 4px;");
     QHBoxLayout *toolbarLayout = new QHBoxLayout(toolbar);
@@ -209,7 +206,6 @@ void App::setupFileExplorer() {
     QPushButton *newFolderBtn = new QPushButton("New Folder");
     QPushButton *refreshBtn = new QPushButton("Refresh");
     
-    // Устанавливаем одинаковый размер для кнопок
     openFolderBtn->setFixedHeight(28);
     newFileBtn->setFixedHeight(28);
     newFolderBtn->setFixedHeight(28);
@@ -273,10 +269,8 @@ void App::setupFileExplorer() {
     
     leftLayout->addWidget(fileTree, 1);
     
-    // Добавляем explorer panel в splitter
     splitter->insertWidget(0, explorerPanel);
     
-    // Настройка размеров splitter
     QList<int> sizes;
     sizes << 280 << 720;
     splitter->setSizes(sizes);
@@ -284,7 +278,6 @@ void App::setupFileExplorer() {
     splitter->setChildrenCollapsible(false);
     splitter->setHandleWidth(2);
     
-    // Connect кнопок
     connect(openFolderBtn, &QPushButton::clicked, this, &App::openFolder);
     connect(newFileBtn, &QPushButton::clicked, this, &App::createNewFileInExplorer);
     connect(newFolderBtn, &QPushButton::clicked, this, &App::createNewFolderInExplorer);
@@ -393,7 +386,7 @@ void App::showEditorOnly() {
 void App::showPanelOnly() {
     explorerPanel->show();
     tabWidget->hide();
-    // Восстанавливаем разделение при следующем переключении
+    
     QTimer::singleShot(100, [this]() {
         tabWidget->show();
     });

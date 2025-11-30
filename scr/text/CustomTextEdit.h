@@ -6,15 +6,27 @@
 #include <QTextCursor>
 #include <QWidget>
 #include <QTextBlock>
+#include <QCompleter>
+#include <QStringList>
+#include <QScrollBar>
+#include <QAbstractItemView>
 
 class CustomTextEdit : public QPlainTextEdit {
     Q_OBJECT
 
 public:
     explicit CustomTextEdit(QWidget *parent = nullptr);
+    ~CustomTextEdit();
+    
+    void setCompleter(QCompleter *completer);
+    QCompleter *completer() const { return c; }
     
 protected:
     void keyPressEvent(QKeyEvent *event) override;
+    void focusInEvent(QFocusEvent *event) override;
+
+private slots:
+    void insertCompletion(const QString &completion);
 
 private:
     void autoParens();
@@ -24,101 +36,223 @@ private:
     void autoSquareBrackets();
     void handleBackspace();
     void handleEnter();
+    void createTips();
+    QString textUnderCursor() const;
+    
+private:
+    QCompleter *c = nullptr;
 };
 
 inline CustomTextEdit::CustomTextEdit(QWidget *parent) : 
     QPlainTextEdit(parent)
 {
-    // Устанавливаем моноширинный шрифт
+    // Font setup
     QFont font("Consolas", 12);
     font.setStyleHint(QFont::TypeWriter);
     setFont(font);
     
-    // Улучшаем производительность для больших файлов
+    // Optimization
     setCenterOnScroll(false);
     setLineWrapMode(QPlainTextEdit::NoWrap);
+    
+    // Create completer
+    createTips();
+}
+
+inline CustomTextEdit::~CustomTextEdit() {
+    if (c) {
+        delete c;
+    }
+}
+
+inline void CustomTextEdit::setCompleter(QCompleter *completer) {
+    if (c) {
+        disconnect(c, nullptr, this, nullptr);
+        delete c;
+    }
+    
+    c = completer;
+    if (!c) {
+        return;
+    }
+    
+    c->setWidget(this);
+    c->setCompletionMode(QCompleter::PopupCompletion);
+    c->setCaseSensitivity(Qt::CaseInsensitive);
+    
+    connect(c, QOverload<const QString &>::of(&QCompleter::activated),
+            this, &CustomTextEdit::insertCompletion);
+}
+
+inline void CustomTextEdit::focusInEvent(QFocusEvent *event) {
+    if (c) {
+        c->setWidget(this);
+    }
+    QPlainTextEdit::focusInEvent(event);
+}
+
+inline void CustomTextEdit::insertCompletion(const QString &completion) {
+    if (!c || c->widget() != this) {
+        return;
+    }
+    
+    QTextCursor tc = textCursor();
+    int extra = completion.length() - c->completionPrefix().length();
+    tc.movePosition(QTextCursor::Left);
+    tc.movePosition(QTextCursor::EndOfWord);
+    tc.insertText(completion.right(extra));
+    setTextCursor(tc);
+}
+
+inline QString CustomTextEdit::textUnderCursor() const {
+    QTextCursor tc = textCursor();
+    tc.select(QTextCursor::WordUnderCursor);
+    return tc.selectedText();
 }
 
 inline void CustomTextEdit::keyPressEvent(QKeyEvent *event) {
-    // Обработка специальных клавиш
+    // Handle completer
+    if (c && c->popup() && c->popup()->isVisible()) {
+        switch (event->key()) {
+            case Qt::Key_Enter:
+            case Qt::Key_Return:
+            case Qt::Key_Escape:
+            case Qt::Key_Tab:
+            case Qt::Key_Backtab:
+                event->ignore();
+                return;
+            default:
+                break;
+        }
+    }
+    
+    bool isShortcut = ((event->modifiers() & Qt::ControlModifier) && event->key() == Qt::Key_Space);
+    
+    // Special keys
     switch (event->key()) {
         case Qt::Key_Tab:
+            if (c && c->popup() && c->popup()->isVisible()) {
+                c->popup()->hide();
+                event->accept();
+                return;
+            }
             insertPlainText("    ");
             event->accept();
-            break;
+            return;
         case Qt::Key_Backspace:
             handleBackspace();
             event->accept();
-            break;
+            return;
         case Qt::Key_ParenLeft:
             autoParens();
             event->accept();
-            break;
+            return;
         case Qt::Key_Apostrophe:
             if (event->modifiers() == Qt::NoModifier) {
                 autoSingleStrings();
                 event->accept();
-            } else {
-                QPlainTextEdit::keyPressEvent(event);
+                return;
             }
             break;
         case Qt::Key_QuoteDbl:
             if (event->modifiers() == Qt::NoModifier) {
                 autoDoubleStrings();
                 event->accept();
-            } else {
-                QPlainTextEdit::keyPressEvent(event);
+                return;
             }
             break;
         case Qt::Key_BraceLeft:
             autoBraces();
             event->accept();
-            break;
+            return;
         case Qt::Key_BracketLeft:
             autoSquareBrackets();
             event->accept();
-            break;
+            return;
         case Qt::Key_Return:
         case Qt::Key_Enter:
             handleEnter();
             event->accept();
-            break;
+            return;
         default:
-            QPlainTextEdit::keyPressEvent(event);
             break;
+    }
+    
+    // Process the key normally first
+    QPlainTextEdit::keyPressEvent(event);
+    
+    // Handle completer after normal processing
+    if (!c) {
+        return;
+    }
+    
+    const bool ctrlOrShift = event->modifiers() & (Qt::ControlModifier | Qt::ShiftModifier);
+    if (ctrlOrShift && event->text().isEmpty()) {
+        return;
+    }
+    
+    static QString eow("~!@#$%^&*()_+{}|:\"<>?,./;'[]\\-="); // end of word
+    bool hasModifier = (event->modifiers() != Qt::NoModifier) && !ctrlOrShift;
+    QString completionPrefix = textUnderCursor();
+    
+    // Don't show completer in these cases
+    if (!isShortcut && (hasModifier || event->text().isEmpty() || 
+                       completionPrefix.length() < 1 ||  // Изменено с 2 на 1
+                       eow.contains(event->text().right(1)))) {
+        if (c->popup()) {
+            c->popup()->hide();
+        }
+        return;
+    }
+    
+    // Update completer
+    if (completionPrefix != c->completionPrefix()) {
+        c->setCompletionPrefix(completionPrefix);
+        if (c->popup()) {
+            c->popup()->setCurrentIndex(c->completionModel()->index(0, 0));
+        }
+    }
+    
+    // Only show popup if there are completions and we have enough characters
+    if (completionPrefix.length() >= 1 && c->completionCount() > 0) {  // Изменено с 2 на 1
+        QRect cr = cursorRect();
+        cr.setWidth(c->popup()->sizeHintForColumn(0) 
+                    + c->popup()->verticalScrollBar()->sizeHint().width());
+        c->complete(cr);
+    } else {
+        if (c->popup()) {
+            c->popup()->hide();
+        }
     }
 }
 
 inline void CustomTextEdit::handleEnter() {
     QTextCursor cursor = textCursor();
     
-    // Получаем текущий блок (строку)
+    // Getting current block (line)
     QTextBlock currentBlock = cursor.block();
     QString currentLineText = currentBlock.text();
     
-    // Находим отступ текущей строки (количество начальных пробелов)
     int indentCount = 0;
     while (indentCount < currentLineText.length() && currentLineText.at(indentCount) == ' ') {
         indentCount++;
     }
     
-    // Проверяем, содержит ли текущая строка class или def
+    // Check on def or class
     bool shouldAddExtraIndent = false;
     QString trimmedLine = currentLineText.trimmed();
     if (trimmedLine.startsWith("class ") || trimmedLine.startsWith("def ")) {
         shouldAddExtraIndent = true;
     }
     
-    // Вставляем новую строку
+    // Insert new line
     QPlainTextEdit::keyPressEvent(new QKeyEvent(QEvent::KeyPress, Qt::Key_Return, Qt::NoModifier));
     
-    // Вычисляем новый отступ
     int newIndentCount = indentCount;
     if (shouldAddExtraIndent) {
         newIndentCount += 4;
     }
     
-    // Если есть отступ, добавляем его к новой строке
     if (newIndentCount > 0) {
         cursor = textCursor();
         QString indent(newIndentCount, ' ');
@@ -171,7 +305,7 @@ inline void CustomTextEdit::handleBackspace() {
     
     int position = cursor.position();
     
-    // Проверяем автозакрывающиеся символы
+    // Chacking
     if (position > 0) {
         cursor.movePosition(QTextCursor::Left);
         cursor.movePosition(QTextCursor::Right, QTextCursor::KeepAnchor, 2);
@@ -209,6 +343,17 @@ inline void CustomTextEdit::handleBackspace() {
     
     cursor = textCursor();
     cursor.deletePreviousChar();
+}
+
+inline void CustomTextEdit::createTips() {
+    QStringList pythonKeyWord;
+    pythonKeyWord << "def" << "class" << "input" << "print" << "if" << "elif" << "else" << "int" << "float" << "str" 
+                  << "bool" << "break" << "continue" << "for" << "while" << "return" << "import" << "from" << "as" 
+                  << "try" << "except" << "finally" << "with" << "lambda" << "None" << "True" << "False" << "pass"
+                  << "in" << "del" << "range" << "max";
+
+    QCompleter *completer = new QCompleter(pythonKeyWord, this);
+    setCompleter(completer);
 }
 
 #endif // CUSTOMTEXTEDIT_H
