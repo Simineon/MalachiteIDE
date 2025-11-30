@@ -4,8 +4,6 @@
 #include <QSyntaxHighlighter>
 #include <QTextCharFormat>
 #include <QRegularExpression>
-#include <QVector>
-#include <QColor>
 
 class Parser : public QSyntaxHighlighter {
     Q_OBJECT
@@ -24,12 +22,15 @@ private:
 
     QVector<HighlightingRule> highlightingRules;
 
-    // Formats for different types of text
     QTextCharFormat keywordFormat;
     QTextCharFormat doubleStringFormat;
     QTextCharFormat singleStringFormat;
+    QTextCharFormat multiLineStringFormat;  // Добавлено
     QTextCharFormat commentFormat;
     QTextCharFormat numberFormat;
+    QTextCharFormat decoratorFormat;        // Добавлено
+
+    void highlightMultiLine(const QString &text, const QString &delimiter, const QTextCharFormat &format);
 };
 
-#endif 
+#endif // PARSER_H

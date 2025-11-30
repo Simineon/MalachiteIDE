@@ -101,6 +101,14 @@ CustomTextEdit* Tab::createEditor()
         "    line-height: 1.4;"
         "}"
     );
+    
+    // Применяем стиль нумерации строк ко всем новым редакторам
+    editor->setLineNumberAreaBackground(QColor(50, 50, 50));
+    editor->setLineNumberColor(QColor(200, 200, 200));
+    editor->setCurrentLineHighlight(QColor(80, 80, 120));
+    editor->setLineNumberFont(QFont("Arial", 10));
+    editor->setLineNumberMargin(8);
+    
     return editor;
 }
 
@@ -158,7 +166,7 @@ void Tab::openFileInTab(const QString &filePath)
         QString fileContent = in.readAll();
         
         // Создаем новую вкладку
-        CustomTextEdit *editor = createEditor();
+        CustomTextEdit *editor = createEditor(); // Используем createEditor для применения стиля
         editor->setPlainText(fileContent);
         editor->setProperty("filePath", filePath);
         editor->setProperty("isModified", false);
@@ -180,7 +188,7 @@ void Tab::openFileInTab(const QString &filePath)
         });
         
         file.close();
-        emit currentTabChanged(); // Испускаем сигнал
+        emit currentTabChanged();
     } else {
         QMessageBox::warning(this, "Error", "Error in file opening!");
     }
@@ -223,7 +231,7 @@ void Tab::closeTab(int index)
             QString filePath = editor->property("filePath").toString();
             if (filePath.isEmpty()) {
                 // Если файл не сохранен, вызываем saveAs через родителя
-                emit requestSaveAs(); // Теперь этот сигнал объявлен
+                emit requestSaveAs();
                 return;
             } else {
                 saveTabContent(editor, filePath);
@@ -258,8 +266,7 @@ void Tab::prevTab()
 void Tab::onTabChanged(int index)
 {
     Q_UNUSED(index)
-    // Сигнал для обновления заголовка окна
-    emit currentTabChanged(); // Теперь этот сигнал объявлен
+    emit currentTabChanged();
 }
 
 void Tab::onEditorTextChanged(CustomTextEdit *editor, const QString &originalContent)

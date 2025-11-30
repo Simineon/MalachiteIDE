@@ -263,7 +263,6 @@ inline void CustomTextEdit::resizeEvent(QResizeEvent *event) {
     lineNumberArea->setGeometry(QRect(cr.left(), cr.top(), lineNumberAreaWidth(), cr.height()));
 }
 
-// Остальные методы остаются без изменений...
 inline void CustomTextEdit::setCompleter(QCompleter *completer) {
     if (c) {
         disconnect(c, nullptr, this, nullptr);
@@ -546,10 +545,64 @@ inline void CustomTextEdit::handleBackspace() {
 
 inline void CustomTextEdit::createTips() {
     QStringList pythonKeyWord;
-    pythonKeyWord << "def" << "class" << "input" << "print" << "if" << "elif" << "else" << "int" << "float" << "str" 
-                  << "bool" << "break" << "continue" << "for" << "while" << "return" << "import" << "from" << "as" 
-                  << "try" << "except" << "finally" << "with" << "lambda" << "None" << "True" << "False" << "pass"
-                  << "in" << "del" << "range" << "max";
+    
+    pythonKeyWord 
+        << "False" << "None" << "True" 
+        << "and" << "as" << "assert" << "async" 
+        << "await" << "break" << "class" << "continue" 
+        << "def" << "del" << "elif" << "else" 
+        << "except" << "finally" << "for" << "from" 
+        << "global" << "if" << "import" << "in" 
+        << "is" << "lambda" << "nonlocal" << "not" 
+        << "or" << "pass" << "raise" << "return" 
+        << "try" << "while" << "with" << "yield"
+        
+        // Специальные идентификаторы
+        << "self" << "cls"
+        
+        // Встроенные функции и типы
+        << "abs" << "all" << "any" << "ascii" 
+        << "bin" << "bool" << "breakpoint" << "bytearray" 
+        << "bytes" << "callable" << "chr" << "classmethod" 
+        << "compile" << "complex" << "delattr" << "dict" 
+        << "dir" << "divmod" << "enumerate" << "eval" 
+        << "exec" << "filter" << "float" << "format" 
+        << "frozenset" << "getattr" << "globals" << "hasattr" 
+        << "hash" << "help" << "hex" << "id" 
+        << "input" << "int" << "isinstance" << "issubclass" 
+        << "iter" << "len" << "list" << "locals" 
+        << "map" << "max" << "memoryview" << "min" 
+        << "next" << "object" << "oct" << "open" 
+        << "ord" << "pow" << "print" << "property" 
+        << "range" << "repr" << "reversed" << "round" 
+        << "set" << "setattr" << "slice" << "sorted" 
+        << "staticmethod" << "str" << "sum" << "super" 
+        << "tuple" << "type" << "vars" << "zip" 
+        
+        // Исключения
+        << "BaseException" << "Exception" << "ArithmeticError" 
+        << "BufferError" << "LookupError" << "AssertionError" 
+        << "AttributeError" << "EOFError" << "FloatingPointError" 
+        << "GeneratorExit" << "ImportError" << "ModuleNotFoundError" 
+        << "IndexError" << "KeyError" << "KeyboardInterrupt" 
+        << "MemoryError" << "NameError" << "NotImplementedError" 
+        << "OSError" << "OverflowError" << "RecursionError" 
+        << "ReferenceError" << "RuntimeError" << "StopIteration" 
+        << "StopAsyncIteration" << "SyntaxError" << "IndentationError" 
+        << "TabError" << "SystemError" << "SystemExit" 
+        << "TypeError" << "UnboundLocalError" << "UnicodeError" 
+        << "UnicodeDecodeError" << "UnicodeEncodeError" << "UnicodeTranslateError" 
+        << "ValueError" << "ZeroDivisionError" << "EnvironmentError" 
+        << "IOError" << "WindowsError" << "BlockingIOError" 
+        << "ChildProcessError" << "ConnectionError" << "BrokenPipeError" 
+        << "ConnectionAbortedError" << "ConnectionRefusedError" << "ConnectionResetError" 
+        << "FileExistsError" << "FileNotFoundError" << "InterruptedError" 
+        << "IsADirectoryError" << "NotADirectoryError" << "PermissionError" 
+        << "ProcessLookupError" << "TimeoutError"
+        
+        // Константы
+        << "__name__" << "__main__" << "__file__" << "__doc__"
+        << "__package__" << "__version__";
 
     QCompleter *completer = new QCompleter(pythonKeyWord, this);
     setCompleter(completer);
