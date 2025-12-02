@@ -71,15 +71,12 @@ private slots:
     void insertCompletion(const QString &completion);
 
 private:
-    void autoParens();
-    void autoDoubleStrings();
-    void autoSingleStrings();
-    void autoBraces();
-    void autoSquareBrackets();
+    void handleAutoQuote(QChar quoteChar);
+    void handleAutoBracket(QChar openingBracket);
+    QString textUnderCursor() const;
     void handleBackspace();
     void handleEnter();
     void createTips();
-    QString textUnderCursor() const;
     
 private:
     QCompleter *c = nullptr;
@@ -309,7 +306,7 @@ inline QString CustomTextEdit::textUnderCursor() const {
 }
 
 inline void CustomTextEdit::keyPressEvent(QKeyEvent *event) {
-    // Handle completer popup first
+    // Handle completer
     if (c && c->popup() && c->popup()->isVisible()) {
         switch (event->key()) {
             case Qt::Key_Enter:
@@ -324,27 +321,53 @@ inline void CustomTextEdit::keyPressEvent(QKeyEvent *event) {
         }
     }
     
-    bool isShortcut = ((event->modifiers() & Qt::ControlModifier) && event->key() == Qt::Key_Space);
-    
-    // Handle special keys for auto-completion
-    if (event->key() == Qt::Key_QuoteDbl && event->modifiers() == Qt::NoModifier) {
-        autoDoubleStrings();
-        event->accept();
-        return;
+    // Check for auto-completion of quotes and brackets
+    if (!event->text().isEmpty() && !event->text().isNull()) {
+        QChar pressedChar = event->text().at(0);
+        
+        // Handle auto-quotes
+        if (pressedChar == '"' || pressedChar == '\'') {
+            handleAutoQuote(pressedChar);
+            event->accept();
+            return;
+        }
+        
+        // Handle auto-brackets
+        if (pressedChar == '(' || pressedChar == '[' || pressedChar == '{') {
+            handleAutoBracket(pressedChar);
+            event->accept();
+            return;
+        }
+        
+        // Handle auto-closing for brackets when typing the closing bracket
+        if (pressedChar == ')' || pressedChar == ']' || pressedChar == '}') {
+            QTextCursor cursor = textCursor();
+            if (cursor.position() < document()->characterCount()) {
+                cursor.movePosition(QTextCursor::Right, QTextCursor::KeepAnchor, 1);
+                QString nextChar = cursor.selectedText();
+                if ((pressedChar == ')' && nextChar == ")") ||
+                    (pressedChar == ']' && nextChar == "]") ||
+                    (pressedChar == '}' && nextChar == "}")) {
+                    // Move cursor over the existing closing bracket
+                    cursor.clearSelection();
+                    cursor.movePosition(QTextCursor::Right);
+                    setTextCursor(cursor);
+                    event->accept();
+                    return;
+                }
+            }
+        }
     }
-    else if (event->key() == Qt::Key_Apostrophe && event->modifiers() == Qt::NoModifier) {
-        autoSingleStrings();
-        event->accept();
-        return;
-    }
     
-    // Handle other special keys
+    // Special keys
     bool keyHandled = false;
     
     switch (event->key()) {
         case Qt::Key_Tab:
             if (c && c->popup() && c->popup()->isVisible()) {
-                c->popup()->hide();
+                if (c->popup()) {
+                    c->popup()->hide();
+                }
                 event->accept();
                 return;
             }
@@ -353,18 +376,6 @@ inline void CustomTextEdit::keyPressEvent(QKeyEvent *event) {
             break;
         case Qt::Key_Backspace:
             handleBackspace();
-            keyHandled = true;
-            break;
-        case Qt::Key_ParenLeft:
-            autoParens();
-            keyHandled = true;
-            break;
-        case Qt::Key_BraceLeft:
-            autoBraces();
-            keyHandled = true;
-            break;
-        case Qt::Key_BracketLeft:
-            autoSquareBrackets();
             keyHandled = true;
             break;
         case Qt::Key_Return:
@@ -393,6 +404,9 @@ inline void CustomTextEdit::keyPressEvent(QKeyEvent *event) {
     if (ctrlOrShift && event->text().isEmpty()) {
         return;
     }
+    
+    // Check for Ctrl+Space shortcut
+    bool isShortcut = ((event->modifiers() & Qt::ControlModifier) && event->key() == Qt::Key_Space);
     
     static QString eow("~!@#$%^&*()_+{}|:\"<>?,./;'[]\\-="); // end of word
     bool hasModifier = (event->modifiers() != Qt::NoModifier) && !ctrlOrShift;
@@ -429,61 +443,71 @@ inline void CustomTextEdit::keyPressEvent(QKeyEvent *event) {
     }
 }
 
-inline void CustomTextEdit::autoParens() {
+inline void CustomTextEdit::handleAutoQuote(QChar quoteChar) {
     QTextCursor cursor = textCursor();
-    cursor.insertText("()");
+    
+    // Check if there's a selection
+    if (cursor.hasSelection()) {
+        // Wrap selection with quotes
+        QString selectedText = cursor.selectedText();
+        cursor.insertText(QString(quoteChar) + selectedText + quoteChar);
+        
+        // Place cursor after the closing quote
+        cursor.movePosition(QTextCursor::Left);
+        setTextCursor(cursor);
+        return;
+    }
+    
+    // Check if we're inside an empty quote pair
+    cursor.movePosition(QTextCursor::Right, QTextCursor::KeepAnchor, 1);
+    QString nextChar = cursor.selectedText();
+    cursor.clearSelection();
+    
+    if (nextChar == quoteChar) {
+        // Move cursor over the existing quote
+        cursor.movePosition(QTextCursor::Right);
+        setTextCursor(cursor);
+        return;
+    }
+    
+    // Insert quote pair
+    QString quotePair = QString(quoteChar) + quoteChar;
+    cursor.insertText(quotePair);
+    
+    // Move cursor between the quotes
     cursor.movePosition(QTextCursor::Left);
     setTextCursor(cursor);
 }
 
-inline void CustomTextEdit::autoDoubleStrings() {
+inline void CustomTextEdit::handleAutoBracket(QChar openingBracket) {
     QTextCursor cursor = textCursor();
+    QChar closingBracket;
     
-    // Проверяем, есть ли выделенный текст
-    if (cursor.hasSelection()) {
-        QString selectedText = cursor.selectedText();
-        cursor.insertText("\"" + selectedText + "\"");
-        
-        // Устанавливаем курсор после закрывающей кавычки
-        cursor.movePosition(QTextCursor::Left);
-        setTextCursor(cursor);
-    } else {
-        // Если нет выделения, вставляем пару кавычек и ставим курсор между ними
-        cursor.insertText("\"\"");
-        cursor.movePosition(QTextCursor::Left);
-        setTextCursor(cursor);
+    // Determine the matching closing bracket
+    switch (openingBracket.unicode()) {
+        case '(': closingBracket = ')'; break;
+        case '[': closingBracket = ']'; break;
+        case '{': closingBracket = '}'; break;
+        default: return;
     }
-}
-
-inline void CustomTextEdit::autoSingleStrings() {
-    QTextCursor cursor = textCursor();
     
-    // Проверяем, есть ли выделенный текст
+    // Check if there's a selection
     if (cursor.hasSelection()) {
+        // Wrap selection with brackets
         QString selectedText = cursor.selectedText();
-        cursor.insertText("'" + selectedText + "'");
+        cursor.insertText(QString(openingBracket) + selectedText + closingBracket);
         
-        // Устанавливаем курсор после закрывающей кавычки
+        // Place cursor after the closing bracket
         cursor.movePosition(QTextCursor::Left);
         setTextCursor(cursor);
-    } else {
-        // Если нет выделения, вставляем пару кавычек и ставим курсор между ними
-        cursor.insertText("''");
-        cursor.movePosition(QTextCursor::Left);
-        setTextCursor(cursor);
+        return;
     }
-}
-
-inline void CustomTextEdit::autoBraces() {
-    QTextCursor cursor = textCursor();
-    cursor.insertText("{}");
-    cursor.movePosition(QTextCursor::Left);
-    setTextCursor(cursor);
-}
-
-inline void CustomTextEdit::autoSquareBrackets() {
-    QTextCursor cursor = textCursor();
-    cursor.insertText("[]");
+    
+    // Insert bracket quote
+    QString bracketPair = QString(openingBracket) + closingBracket;
+    cursor.insertText(bracketPair);
+    
+    // Move cursor between the brackets
     cursor.movePosition(QTextCursor::Left);
     setTextCursor(cursor);
 }
@@ -498,7 +522,7 @@ inline void CustomTextEdit::handleBackspace() {
     
     int position = cursor.position();
     
-    // Chacking
+    // Checking for auto-inserted quotes
     if (position > 0) {
         cursor.movePosition(QTextCursor::Left);
         cursor.movePosition(QTextCursor::Right, QTextCursor::KeepAnchor, 2);
@@ -555,6 +579,14 @@ inline void CustomTextEdit::handleEnter() {
     QString trimmedLine = currentLineText.trimmed();
     if (trimmedLine.startsWith("class ") || trimmedLine.startsWith("def ")) {
         shouldAddExtraIndent = true;
+    }
+    
+    // Check for colon at end of line
+    if (!currentLineText.trimmed().isEmpty()) {
+        QChar lastChar = currentLineText.trimmed().at(currentLineText.trimmed().length() - 1);
+        if (lastChar == ':' || currentLineText.contains("{")) {
+            shouldAddExtraIndent = true;
+        }
     }
     
     // Insert new line
