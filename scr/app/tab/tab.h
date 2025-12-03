@@ -39,8 +39,8 @@ public slots:
     void updateTabTitle(int index);
 
 signals:
-    void requestSaveAs(); // Добавляем этот сигнал
-    void currentTabChanged(); // Добавляем этот сигнал
+    void requestSaveAs(); 
+    void currentTabChanged(); 
 
 private:
     void setupTabWidget();

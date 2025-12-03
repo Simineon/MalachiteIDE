@@ -14,6 +14,7 @@
 #include <QTextEdit>
 #include <QTextDocument>
 #include <QPainter>
+#include <QStack>
 
 // Forward declaration
 class CustomTextEdit;
@@ -77,6 +78,7 @@ private:
     void handleBackspace();
     void handleEnter();
     void createTips();
+    bool shouldInsertSingleQuote() const;
     
 private:
     QCompleter *c = nullptr;
@@ -305,6 +307,15 @@ inline QString CustomTextEdit::textUnderCursor() const {
     return tc.selectedText();
 }
 
+inline bool CustomTextEdit::shouldInsertSingleQuote() const {
+    QTextCursor cursor = textCursor();
+    int pos = cursor.position();
+    QTextDocument *doc = document();
+    
+
+    return false;
+}
+
 inline void CustomTextEdit::keyPressEvent(QKeyEvent *event) {
     // Handle completer
     if (c && c->popup() && c->popup()->isVisible()) {
@@ -325,8 +336,8 @@ inline void CustomTextEdit::keyPressEvent(QKeyEvent *event) {
     if (!event->text().isEmpty() && !event->text().isNull()) {
         QChar pressedChar = event->text().at(0);
         
-        // Handle auto-quotes
         if (pressedChar == '"' || pressedChar == '\'') {
+            // Всегда используем автозавершение кавычек
             handleAutoQuote(pressedChar);
             event->accept();
             return;
@@ -445,6 +456,7 @@ inline void CustomTextEdit::keyPressEvent(QKeyEvent *event) {
 
 inline void CustomTextEdit::handleAutoQuote(QChar quoteChar) {
     QTextCursor cursor = textCursor();
+    int originalPosition = cursor.position();
     
     // Check if there's a selection
     if (cursor.hasSelection()) {
@@ -459,25 +471,41 @@ inline void CustomTextEdit::handleAutoQuote(QChar quoteChar) {
     }
     
     // Check if we're inside an empty quote pair
-    cursor.movePosition(QTextCursor::Right, QTextCursor::KeepAnchor, 1);
-    QString nextChar = cursor.selectedText();
-    cursor.clearSelection();
+    if (originalPosition < document()->characterCount()) {
+        cursor.setPosition(originalPosition);
+        cursor.movePosition(QTextCursor::Right, QTextCursor::KeepAnchor, 1);
+        QString nextChar = cursor.selectedText();
+        cursor.clearSelection();
+        
+        if (nextChar == quoteChar) {
+            // Move cursor over the existing quote
+            cursor.setPosition(originalPosition);
+            cursor.movePosition(QTextCursor::Right);
+            setTextCursor(cursor);
+            return;
+        }
+    }
     
-    if (nextChar == quoteChar) {
-        // Move cursor over the existing quote
-        cursor.movePosition(QTextCursor::Right);
+    // Check if we should insert single quote
+    if (shouldInsertSingleQuote()) {
+        // Insert single quote
+        cursor.setPosition(originalPosition);
+        cursor.insertText(quoteChar);
+        cursor.setPosition(originalPosition + 1);
         setTextCursor(cursor);
         return;
     }
     
     // Insert quote pair
     QString quotePair = QString(quoteChar) + quoteChar;
+    cursor.setPosition(originalPosition);
     cursor.insertText(quotePair);
     
     // Move cursor between the quotes
-    cursor.movePosition(QTextCursor::Left);
+    cursor.setPosition(originalPosition + 1);
     setTextCursor(cursor);
 }
+
 
 inline void CustomTextEdit::handleAutoBracket(QChar openingBracket) {
     QTextCursor cursor = textCursor();

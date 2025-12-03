@@ -31,6 +31,7 @@
 #include <QToolBar>
 #include <QToolButton>
 #include <QCloseEvent>
+#include <QStatusBar>
 #include "../parser/parser.h"
 #include "execute/executer.h"
 #include "../text/CustomTextEdit.h"
@@ -84,10 +85,19 @@ void App::setupUI() {
     // Tab widget
     tabWidget = new Tab(this);
     splitter->addWidget(tabWidget);
-    
+
+    // Status bar
+    QStatusBar *statusBar = new QStatusBar(this);
+    statusBar->showMessage("Status: ");
+
     // Add in layout
     layout->addWidget(menuBar);
     layout->addWidget(splitter, 1);
+    layout->addWidget(statusBar);
+}
+
+void App::setupStatusBar() {
+    
 }
 
 void App::setupMenuBar() {
@@ -127,7 +137,7 @@ void App::setupMenuBar() {
     editorOnlyViewAction->setShortcut(QKeySequence("Ctrl+1"));
     panelOnlyViewAction->setShortcut(QKeySequence("Ctrl+2"));
 
-    // Window Menu - настраиваем через Tab класс
+    // Window Menu 
     tabWidget->setupWindowMenu(windowMenu);
     
     // Connect Actions
@@ -191,7 +201,7 @@ void App::setupFileExplorer() {
     leftLayout->setContentsMargins(0, 0, 0, 0);
     leftLayout->setSpacing(0);
     
-    QLabel *explorerLabel = new QLabel("File Explorer");
+    QLabel *explorerLabel = new QLabel("Explorer");
     explorerLabel->setAlignment(Qt::AlignCenter);
     leftLayout->addWidget(explorerLabel);
     
@@ -331,7 +341,6 @@ void App::createNewFileInExplorer() {
         QFile file(filePath);
         if (file.open(QIODevice::WriteOnly)) {
             file.close();
-            // Обновляем модель
             refreshFileExplorer();
         } else {
             QMessageBox::warning(this, "Error", "Could not create file: " + file.errorString());

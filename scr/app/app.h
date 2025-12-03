@@ -49,6 +49,7 @@ private:
     void setupMenuBar();
     void setupFileExplorer();
     void setupConnections();
+    void setupStatusBar();
 
     QMenuBar *menuBar;
     QSplitter *splitter;
