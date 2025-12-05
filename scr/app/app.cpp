@@ -32,9 +32,11 @@
 #include <QToolButton>
 #include <QCloseEvent>
 #include <QStatusBar>
+#include <QMenu>
 #include "../parser/parser.h"
 #include "execute/executer.h"
 #include "../text/CustomTextEdit.h"
+#include "engine_search/engine_window.h"
 
 App::App(QWidget *parent) 
     : QWidget(parent)
@@ -45,11 +47,13 @@ App::App(QWidget *parent)
     , fileTree(nullptr)
     , explorerPanel(nullptr)
     , statusBar(nullptr)
+    , miniWindow(nullptr)
 {
     setupUI();
     setupMenuBar();
     setupFileExplorer();
     setupConnections();
+    setupContextMenu();
     setupStatusBar(); 
 
     tabWidget->newTab();
@@ -66,6 +70,9 @@ App::App(QWidget *parent)
         
         // highlighting 
         new Parser(firstEditor->document());
+
+        // new context menu
+        setupContextMenu();
     }
 
     // Window settings
@@ -94,6 +101,92 @@ void App::setupUI() {
     layout->addWidget(menuBar);
     layout->addWidget(splitter, 1);
     layout->addWidget(statusBar);
+}
+
+void App::setupContextMenu() {
+    CustomTextEdit *editor = tabWidget->getCurrentEditor();
+    if (!editor) return;
+    
+    QMenu *contextMenu = new QMenu(editor);
+
+    contextMenu->setStyleSheet(
+        "QMenu {"
+        "    background-color: #252526;"
+        "    color: #cccccc;"
+        "    border: 1px solid #454545;"
+        "    padding: 4px;"
+        "    border-radius: 4px;"
+        "}"
+        "QMenu::item {"
+        "    padding: 6px 24px 6px 12px;"
+        "    margin: 2px 4px;"
+        "    border-radius: 4px;"
+        "    border: none;"
+        "}"
+        "QMenu::item:selected {"
+        "    background-color: #306442;"
+        "    color: #ffffff;"
+        "}"
+        "QMenu::item:disabled {"
+        "    color: #666666;"
+        "}"
+        "QMenu::separator {"
+        "    height: 1px;"
+        "    background-color: #3e3e42;"
+        "    margin: 4px 8px;"
+        "}"
+    );
+    
+    // Добавляем стандартные действия редактирования
+    QAction *undoAction = contextMenu->addAction("Undo");
+    QAction *redoAction = contextMenu->addAction("Redo");
+    contextMenu->addSeparator();
+    QAction *cutAction = contextMenu->addAction("Cut");
+    QAction *copyAction = contextMenu->addAction("Copy");
+    QAction *pasteAction = contextMenu->addAction("Paste");
+    contextMenu->addSeparator();
+    
+    QAction *searchAction = contextMenu->addAction("Search in Engine");
+    
+    // connecting
+    connect(undoAction, &QAction::triggered, editor, &CustomTextEdit::undo);
+    connect(redoAction, &QAction::triggered, editor, &CustomTextEdit::redo);
+    connect(cutAction, &QAction::triggered, editor, &CustomTextEdit::cut);
+    connect(copyAction, &QAction::triggered, editor, &CustomTextEdit::copy);
+    connect(pasteAction, &QAction::triggered, editor, &CustomTextEdit::paste);
+    
+    // connect search action - ЗАХВАТЫВАЕМ this
+    connect(searchAction, &QAction::triggered, this, [this]() {
+        if (!miniWindow) {
+            miniWindow = new QDialog(this);
+            miniWindow->setWindowTitle("Search Engine");
+            miniWindow->setFixedSize(1000, 800);
+
+            QVBoxLayout *layout = new QVBoxLayout(miniWindow);
+            QLabel *label = new QLabel("Here will our search engine", miniWindow);
+            QPushButton *closeButton = new QPushButton("close", miniWindow);
+
+            layout->addWidget(label);
+            layout->addWidget(closeButton);
+
+            connect(closeButton, &QPushButton::clicked, 
+                miniWindow, &QDialog::close);
+        }
+
+        miniWindow->show();
+        qDebug() << "Search option clicked";
+    });
+    
+    // set context menu for Text edit
+    editor->setContextMenuPolicy(Qt::CustomContextMenu);
+    connect(editor, &CustomTextEdit::customContextMenuRequested,
+            [editor, contextMenu](const QPoint &pos) {
+                contextMenu->exec(editor->mapToGlobal(pos));
+            });
+    
+    connect(tabWidget, &Tab::currentChanged, this, [this]() {
+        setupContextMenu();
+    });
 }
 
 void App::setupStatusBar() {
@@ -233,7 +326,7 @@ void App::setupFileExplorer() {
         "    border-bottom: 1px solid #1e1e1e;"
         "}"
         "QPushButton {"
-        "    background-color: #0e639c;"
+        "    background-color: #306442;"
         "    color: white;"
         "    border: none;"
         "    padding: 6px 12px;"
@@ -242,10 +335,10 @@ void App::setupFileExplorer() {
         "    min-height: 20px;"
         "}"
         "QPushButton:hover {"
-        "    background-color: #1177bb;"
+        "    background-color: #499764ff;"
         "}"
         "QPushButton:pressed {"
-        "    background-color: #0c547d;"
+        "    background-color: #306442;"
         "}"
         "QPushButton:disabled {"
         "    background-color: #464647;"

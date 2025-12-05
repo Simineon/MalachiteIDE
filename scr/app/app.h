@@ -9,6 +9,7 @@
 #include <QModelIndex>
 #include <QStatusBar>
 #include <QLabel>
+#include <QPoint>
 #include "tab/tab.h"
 
 class App : public QWidget
@@ -49,6 +50,7 @@ protected:
 
 private:
     void setupUI();
+    void setupContextMenu();
     void setupMenuBar();
     void setupFileExplorer();
     void setupConnections();
@@ -56,6 +58,7 @@ private:
 
     QMenuBar *menuBar;
     QSplitter *splitter;
+    QMenu *contextMenu;
     Tab *tabWidget;
     QFileSystemModel *fileModel;
     QTreeView *fileTree;
@@ -63,6 +66,7 @@ private:
     QStatusBar *statusBar;
     QLabel *lineLabel;
     QLabel *indentLabel;
+    QDialog *miniWindow;
     QMetaObject::Connection currentEditorCursorConnection;
 };
 

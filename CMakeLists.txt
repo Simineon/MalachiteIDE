@@ -31,6 +31,7 @@ add_executable(Malachite
     scr/app/execute/executer.cpp
     scr/app/tab/tab.h
     scr/app/tab/tab.cpp
+    scr/app/engine_search/engine_window.h
 )
 
 # Подключаем Qt компоненты
